@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.baitabei.mapper.ReviewMapper">
+
+    <resultMap id="ReviewVoResultMap" type="com.baitabei.vo.ReviewVo">
+        <id column="id" property="id"/>
+        <result column="project_id" property="projectId"/>
+        <result column="project_title" property="projectTitle"/>
+        <result column="evaluator_id" property="reviewerId"/>
+        <result column="reviewer_name" property="reviewerName"/>
+        <result column="round" property="reviewType"/>
+        <result column="comments" property="content"/>
+        <result column="total_score" property="score"/>
+        <result column="status" property="status"/>
+        <result column="submit_time" property="submittedTime"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_time" property="updatedTime"/>
+    </resultMap>
+
+    <!-- 分页查询评审列表 -->
+    <select id="selectReviewPage" resultMap="ReviewVoResultMap">
+        SELECT 
+            e.id,
+            e.project_id,
+            p.project_name AS project_title,
+            e.evaluator_id,
+            u.real_name AS reviewer_name,
+            CASE 
+                WHEN e.round = 1 THEN '初审'
+                WHEN e.round = 2 THEN '复审'
+                WHEN e.round = 3 THEN '终审'
+                ELSE '未知'
+            END AS round,
+            e.comments,
+            e.total_score,
+            CASE 
+                WHEN e.status = 1 THEN '草稿'
+                WHEN e.status = 2 THEN '已提交'
+                ELSE '未知'
+            END AS status,
+            e.submit_time,
+            e.created_time,
+            e.updated_time
+        FROM evaluations e
+        LEFT JOIN projects p ON e.project_id = p.id
+        LEFT JOIN users u ON e.evaluator_id = u.id
+        WHERE e.deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (p.project_name LIKE CONCAT('%', #{keyword}, '%') 
+                 OR u.real_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR e.comments LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY e.created_time DESC
+    </select>
+
+    <!-- 获取项目的所有评审 -->
+    <select id="selectReviewsByProjectId" resultMap="ReviewVoResultMap">
+        SELECT 
+            e.id,
+            e.project_id,
+            p.project_name AS project_title,
+            e.evaluator_id,
+            u.real_name AS reviewer_name,
+            CASE 
+                WHEN e.round = 1 THEN '初审'
+                WHEN e.round = 2 THEN '复审'
+                WHEN e.round = 3 THEN '终审'
+                ELSE '未知'
+            END AS round,
+            e.comments,
+            e.total_score,
+            CASE 
+                WHEN e.status = 1 THEN '草稿'
+                WHEN e.status = 2 THEN '已提交'
+                ELSE '未知'
+            END AS status,
+            e.submit_time,
+            e.created_time,
+            e.updated_time
+        FROM evaluations e
+        LEFT JOIN projects p ON e.project_id = p.id
+        LEFT JOIN users u ON e.evaluator_id = u.id
+        WHERE e.deleted = 0 AND e.project_id = #{projectId}
+        ORDER BY e.created_time DESC
+    </select>
+
+    <!-- 获取评审详情 -->
+    <select id="selectReviewVoById" resultMap="ReviewVoResultMap">
+        SELECT 
+            e.id,
+            e.project_id,
+            p.project_name AS project_title,
+            e.evaluator_id,
+            u.real_name AS reviewer_name,
+            CASE 
+                WHEN e.round = 1 THEN '初审'
+                WHEN e.round = 2 THEN '复审'
+                WHEN e.round = 3 THEN '终审'
+                ELSE '未知'
+            END AS round,
+            e.comments,
+            e.total_score,
+            CASE 
+                WHEN e.status = 1 THEN '草稿'
+                WHEN e.status = 2 THEN '已提交'
+                ELSE '未知'
+            END AS status,
+            e.submit_time,
+            e.created_time,
+            e.updated_time
+        FROM evaluations e
+        LEFT JOIN projects p ON e.project_id = p.id
+        LEFT JOIN users u ON e.evaluator_id = u.id
+        WHERE e.deleted = 0 AND e.id = #{reviewId}
+    </select>
+
+    <!-- 统计评审数量 -->
+    <select id="countReviews" resultType="long">
+        SELECT COUNT(*) 
+        FROM evaluations 
+        WHERE deleted = 0
+    </select>
+
+    <!-- 统计已完成评审数量 -->
+    <select id="countCompletedReviews" resultType="long">
+        SELECT COUNT(*) 
+        FROM evaluations 
+        WHERE deleted = 0 AND status = 2
+    </select>
+
+    <!-- 统计待审核评审数量 -->
+    <select id="countPendingReviews" resultType="long">
+        SELECT COUNT(*) 
+        FROM evaluations 
+        WHERE deleted = 0 AND status = 1
+    </select>
+
+    <!-- 计算平均评审分数 -->
+    <select id="getAverageReviewScore" resultType="java.lang.Double">
+        SELECT AVG(total_score)
+        FROM evaluations 
+        WHERE deleted = 0 AND status = 2 AND total_score IS NOT NULL
+    </select>
+
+</mapper>

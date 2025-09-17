@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.baitabei.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.baitabei.entity.User">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="email" property="email"/>
+        <result column="phone" property="phone"/>
+        <result column="password" property="password"/>
+        <result column="real_name" property="realName"/>
+        <result column="gender" property="gender"/>
+        <result column="birth_date" property="birthDate"/>
+        <result column="avatar" property="avatar"/>
+        <result column="institution" property="institution"/>
+        <result column="profession" property="profession"/>
+        <result column="bio" property="bio"/>
+        <result column="status" property="status"/>
+        <result column="email_verified" property="emailVerified"/>
+        <result column="phone_verified" property="phoneVerified"/>
+        <result column="last_login_time" property="lastLoginTime"/>
+        <result column="last_login_ip" property="lastLoginIp"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <resultMap id="UserVoResultMap" type="com.baitabei.vo.UserVo">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="email" property="email"/>
+        <result column="phone" property="phone"/>
+        <result column="real_name" property="realName"/>
+        <result column="gender" property="gender"/>
+        <result column="avatar" property="avatar"/>
+        <result column="institution" property="institution"/>
+        <result column="profession" property="profession"/>
+        <result column="bio" property="bio"/>
+        <result column="status" property="status"/>
+        <result column="email_verified" property="emailVerified"/>
+        <result column="phone_verified" property="phoneVerified"/>
+        <result column="last_login_time" property="lastLoginTime"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_time" property="updatedTime"/>
+        <collection property="roles" ofType="com.baitabei.vo.RoleVo">
+            <id column="role_id" property="id"/>
+            <result column="role_code" property="roleCode"/>
+            <result column="role_name" property="roleName"/>
+        </collection>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, username, email, phone, password, real_name, gender, birth_date, 
+        avatar, institution, profession, bio, status, email_verified, 
+        phone_verified, last_login_time, last_login_ip, created_time, 
+        updated_time, deleted
+    </sql>
+
+    <sql id="UserVo_Column_List">
+        id, username, email, phone, real_name, gender, avatar, 
+        institution, profession, bio, status, email_verified, 
+        phone_verified, last_login_time, created_time, updated_time
+    </sql>
+
+    <!-- 根据用户名查询用户 -->
+    <select id="findByUsername" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM users 
+        WHERE username = #{username} AND deleted = 0
+    </select>
+
+    <!-- 根据邮箱查询用户 -->
+    <select id="findByEmail" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM users 
+        WHERE email = #{email} AND deleted = 0
+    </select>
+
+    <!-- 根据手机号查询用户 -->
+    <select id="findByPhone" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM users 
+        WHERE phone = #{phone} AND deleted = 0
+    </select>
+
+    <!-- 根据用户名或邮箱查询用户 -->
+    <select id="findByUsernameOrEmail" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM users 
+        WHERE (username = #{identifier} OR email = #{identifier}) AND deleted = 0
+    </select>
+
+    <select id="selectUserPage" resultMap="UserVoResultMap">
+        SELECT
+        u.id,
+        u.username,
+        u.email,
+        u.phone,
+        u.real_name,
+        u.gender,
+        u.avatar,
+        u.institution,
+        u.profession,
+        u.bio,
+        u.status,
+        u.email_verified,
+        u.phone_verified,
+        u.last_login_time,
+        u.created_time,
+        u.updated_time,
+        r.id AS role_id,
+        r.role_code,
+        r.role_name
+        FROM users u
+        INNER JOIN user_roles ur ON u.id = ur.user_id
+        INNER JOIN roles r ON ur.role_id = r.id AND r.deleted = 0 AND r.status = 1
+        <where>
+            u.deleted = 0
+            <if test="dto.username != null and dto.username != ''">
+                AND u.username LIKE CONCAT('%', #{dto.username}, '%')
+            </if>
+            <if test="dto.email != null and dto.email != ''">
+                AND u.email LIKE CONCAT('%', #{dto.email}, '%')
+            </if>
+            <if test="dto.phone != null and dto.phone != ''">
+                AND u.phone LIKE CONCAT('%', #{dto.phone}, '%')
+            </if>
+            <if test="dto.realName != null and dto.realName != ''">
+                AND u.real_name LIKE CONCAT('%', #{dto.realName}, '%')
+            </if>
+            <if test="dto.status != null">
+                AND u.status = #{dto.status}
+            </if>
+            <if test="dto.institution != null and dto.institution != ''">
+                AND u.institution LIKE CONCAT('%', #{dto.institution}, '%')
+            </if>
+            <if test="dto.startTime != null and dto.startTime != ''">
+                AND u.created_time >= #{dto.startTime}
+            </if>
+            <if test="dto.endTime != null and dto.endTime != ''">
+                AND u.created_time &lt;= #{dto.endTime}
+            </if>
+            <if test="dto.roleId != null">
+                AND r.id = #{dto.roleId}
+            </if>
+        </where>
+        <choose>
+            <when test="dto.sortField != null and dto.sortField != '' and dto.sortOrder != null and dto.sortOrder != ''">
+                ORDER BY ${dto.sortField} ${dto.sortOrder}
+            </when>
+            <otherwise>ORDER BY u.created_time DESC</otherwise>
+        </choose>
+    </select>
+    <!-- 分页查询用户列表 -->
+<!--    <select id="selectUserPage" resultMap="UserVoResultMap">-->
+<!--        SELECT <include refid="UserVo_Column_List"/>-->
+<!--        FROM users -->
+<!--        <where>-->
+<!--            deleted = 0-->
+<!--            <if test="dto.username != null and dto.username != ''">-->
+<!--                AND username LIKE CONCAT('%', #{dto.username}, '%')-->
+<!--            </if>-->
+<!--            <if test="dto.email != null and dto.email != ''">-->
+<!--                AND email LIKE CONCAT('%', #{dto.email}, '%')-->
+<!--            </if>-->
+<!--            <if test="dto.phone != null and dto.phone != ''">-->
+<!--                AND phone LIKE CONCAT('%', #{dto.phone}, '%')-->
+<!--            </if>-->
+<!--            <if test="dto.realName != null and dto.realName != ''">-->
+<!--                AND real_name LIKE CONCAT('%', #{dto.realName}, '%')-->
+<!--            </if>-->
+<!--            <if test="dto.status != null">-->
+<!--                AND status = #{dto.status}-->
+<!--            </if>-->
+<!--            <if test="dto.institution != null and dto.institution != ''">-->
+<!--                AND institution LIKE CONCAT('%', #{dto.institution}, '%')-->
+<!--            </if>-->
+<!--            <if test="dto.startTime != null and dto.startTime != ''">-->
+<!--                AND created_time >= #{dto.startTime}-->
+<!--            </if>-->
+<!--            <if test="dto.endTime != null and dto.endTime != ''">-->
+<!--                AND created_time &lt;= #{dto.endTime}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--        <if test="dto.sortField != null and dto.sortField != '' and dto.sortOrder != null and dto.sortOrder != ''">-->
+<!--            ORDER BY ${dto.sortField} ${dto.sortOrder}-->
+<!--        </if>-->
+<!--    </select>-->
+
+    <!-- 根据角色查询用户列表 -->
+    <select id="findUsersByRole" resultMap="BaseResultMap">
+        SELECT u.<include refid="Base_Column_List"/>
+        FROM users u
+        INNER JOIN user_roles ur ON u.id = ur.user_id
+        INNER JOIN roles r ON ur.role_id = r.id
+        WHERE r.role_code = #{roleCode} AND u.deleted = 0 AND r.deleted = 0
+    </select>
+
+    <!-- 查询用户角色列表 -->
+    <select id="findUserRoles" resultType="string">
+        SELECT r.role_code
+        FROM roles r
+        INNER JOIN user_roles ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId} AND r.deleted = 0 AND r.status = 1
+    </select>
+
+    <!-- 查询用户权限列表 -->
+    <select id="findUserPermissions" resultType="string">
+        SELECT DISTINCT p.permission_code
+        FROM permissions p
+        INNER JOIN role_permissions rp ON p.id = rp.permission_id
+        INNER JOIN roles r ON rp.role_id = r.id
+        INNER JOIN user_roles ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId} 
+        AND p.deleted = 0 AND p.status = 1 
+        AND r.deleted = 0 AND r.status = 1
+    </select>
+
+    <!-- 更新用户最后登录信息 -->
+    <update id="updateLastLogin">
+        UPDATE users 
+        SET last_login_time = NOW(), last_login_ip = #{ip}, updated_time = NOW()
+        WHERE id = #{userId}
+    </update>
+
+    <!-- 更新用户状态 -->
+    <update id="updateStatus">
+        UPDATE users 
+        SET status = #{status}, updated_time = NOW()
+        WHERE id = #{userId}
+    </update>
+
+    <!-- 批量更新用户状态 -->
+    <update id="batchUpdateStatus">
+        UPDATE users 
+        SET status = #{status}, updated_time = NOW()
+        WHERE id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </update>
+
+    <!-- 统计用户数量 -->
+    <select id="countUsers" resultType="long">
+        SELECT COUNT(*) FROM users WHERE deleted = 0
+    </select>
+
+    <!-- 统计激活用户数量 -->
+    <select id="countActiveUsers" resultType="long">
+        SELECT COUNT(*) FROM users WHERE deleted = 0 AND status = 1
+    </select>
+
+    <!-- 统计今日新增用户数量 -->
+    <select id="countTodayNewUsers" resultType="long">
+        SELECT COUNT(*) FROM users 
+        WHERE deleted = 0 AND DATE(created_time) = CURDATE()
+    </select>
+
+    <!-- 统计在线用户数量 -->
+    <select id="countOnlineUsers" resultType="long">
+        SELECT COUNT(*) FROM users 
+        WHERE deleted = 0 AND status = 1 
+        AND last_login_time >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+    </select>
+
+
+    <select id="countUsersByRole" resultType="java.util.Map">
+        SELECT r.id   AS roleId,
+        r.role_code AS roleCode,
+        r.role_name AS roleName,
+        COUNT(DISTINCT ur.user_id) AS userCount
+        FROM roles r
+        LEFT JOIN user_roles ur ON r.id = ur.role_id
+        WHERE r.deleted = 0
+        AND r.status = 1
+        <if test="roleId != null">
+            AND r.id = #{roleId}
+        </if>
+        <if test="roleCode != null and roleCode != ''">
+            AND r.role_code = #{roleCode}
+        </if>
+        GROUP BY r.id, r.role_code, r.role_name
+        ORDER BY userCount DESC
+    </select>
+</mapper>

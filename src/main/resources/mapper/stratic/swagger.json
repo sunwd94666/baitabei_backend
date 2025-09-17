@@ -1,0 +1,22 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "BaiTaBei API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "http://localhost:8080/api" }
+  ],
+  "paths": {
+    "/hello": {
+      "get": {
+        "summary": "示例接口",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  }
+}

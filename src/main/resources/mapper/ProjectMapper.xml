@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.baitabei.mapper.ProjectMapper">
+    <sql id="Base_Column_List">
+        id, project_code, project_name, track_id, user_id,
+    description, detailed_description, innovation_points, technical_solution, market_analysis,
+    team_info, cover_image, demo_url, video_url, status,
+    submit_time, review_time, review_comment, final_score, ranking,
+    award_level, created_time, updated_time, deleted, track_json
+    </sql>
+    <!-- 其他 SQL 映射 -->
+
+    <!-- 更新项目状态 -->
+    <update id="updateStatus" parameterType="map">
+        UPDATE projects
+        SET status = #{status}, updated_time = NOW()
+        WHERE id = #{projectId}
+    </update>
+    <!-- 根据用户 ID 查询项目 -->
+    <select id="findProjectsByUserId" resultType="com.baitabei.entity.Project">
+        SELECT <include refid="Base_Column_List"/>
+        FROM projects
+        WHERE user_id = #{userId}
+        AND deleted = 0
+    </select>
+    <!-- 其他 SQL 映射 -->
+    <!-- 分页 + 动态条件查询项目列表 -->
+    <select id="selectProjectPage"
+            resultType="com.baitabei.entity.Project">
+        SELECT
+        p.id,
+        p.project_name        AS projectName,
+        p.track_id            AS trackId,
+        p.description,
+        p.detailed_description AS detailedDescription,
+        p.innovation_points   AS innovationPoints,
+        p.technical_solution  AS technicalSolution,
+        p.market_analysis     AS marketAnalysis,
+        p.team_info           AS teamInfo,
+        p.cover_image         AS coverImage,
+        p.demo_url            AS demoUrl,
+        p.video_url           AS videoUrl,
+        p.track_json          AS trackJson,
+        p.status,
+        p.created_time        AS createdTime,
+        p.updated_time        AS updatedTime,
+        u.username            AS ownerName
+        FROM projects p
+        LEFT JOIN users u ON p.user_id = u.id
+        <where>
+            p.deleted = 0
+            <if test="dto.projectName != null and dto.projectName != ''">
+                AND p.project_name LIKE CONCAT('%', #{dto.projectName}, '%')
+            </if>
+            <if test="dto.status != null">
+                AND p.status = #{dto.status}
+            </if>
+            <if test="dto.trackId != null">
+                AND p.track_id = #{dto.trackId}
+            </if>
+<!--            <if test="dto.userId != null">-->
+<!--                AND p.user_id = #{dto.userId}-->
+<!--            </if>-->
+<!--            &lt;!&ndash; 时间范围 &ndash;&gt;-->
+<!--            <if test="dto.startTime != null">-->
+<!--                AND p.created_time >= #{dto.startTime}-->
+<!--            </if>-->
+<!--            <if test="dto.endTime != null">-->
+<!--                AND p.created_time &lt;= #{dto.endTime}-->
+<!--            </if>-->
+        </where>
+        ORDER BY p.created_time DESC
+    </select>
+
+    <!-- 按赛道统计项目数量 -->
+    <select id="countProjectsByTrack" resultType="java.util.Map">
+        SELECT
+            track_id  AS trackId,
+            COUNT(*)  AS projectCount
+        FROM
+            projects
+        WHERE
+            deleted = 0
+        GROUP BY
+            track_id
+        ORDER BY
+            projectCount DESC
+    </select>
+
+    <!-- 按赛道统计项目数量 -->
+    <select id="selectProjectsCountByTrack" resultType="java.util.Map">
+        SELECT
+        track_id  AS trackId,
+        COUNT(*)  AS projectCount
+        FROM
+        projects
+        WHERE
+        deleted = 0
+        <if test="trackId != null">
+            AND track_id = #{trackId}
+        </if>
+        GROUP BY
+        track_id
+        ORDER BY
+        projectCount DESC
+    </select>
+
+</mapper>
